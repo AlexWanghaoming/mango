@@ -3,10 +3,10 @@ from interval import Interval
 max_bundle_gap  = 20000
 diff_dir_fraction = 0.2
 diff_dir_length = 100000
-min_telo_to_show = 10000
+min_telo_to_show = 15000
 
-# telo_file = "/Users/alexwang/0data/0mango/genome/telo/qz.telo.txt"
-# mummer_res = "/Users/alexwang/0data/0mango/genome/mummer/gz15_qz.tab.txt"
+#telo_file = "/Users/alexwang/0data/0mango/genome/telo/hn47.telo.txt"
+#mummer_res = "/Users/alexwang/0data/0mango/genome/mummer/gd10_hn47.tab.txt"
 mummer_res = sys.argv[1]
 telo_file = sys.argv[2]
 
@@ -41,7 +41,7 @@ def linkage(bundle_list):
     for i in range(1,num):
         tmp = bundle_list[i]
         start1, end1, start2, end2,dir,si = tmp[0], tmp[1],tmp[2], tmp[3],tmp[4],tmp[5]
-        if dir == bundle_list[i-1][4] and start1 - bundle_list[i-1][1] < max_bundle_gap:
+        if dir == bundle_list[i-1][4] and abs(start1 - bundle_list[i-1][1])<=max_bundle_gap and abs(start2 - bundle_list[i-1][3]) <= max_bundle_gap:
             bundle_list[i][0], bundle_list[i][2] = bundle_list[i-1][0], bundle_list[i-1][2]
             bundle_list[i][5] = si + bundle_list[i-1][5]
             remove_list.append(i-1)
@@ -71,7 +71,7 @@ for target in rec.keys():
                 rec[target].append([s1,e1,s2,e2,dire,bundle_size])
             else:
                 obj = rec[target][-1]
-                if s1 - obj[1] <= max_bundle_gap and dire == obj[4]:   # 可捆绑的条件
+                if abs(s1 - obj[1]) <= max_bundle_gap and abs(s2 - obj[3]) <= max_bundle_gap and dire == obj[4]:   # 可捆绑的条件
                     obj[1], obj[3] = e1, e2
                     obj[5] += 1
                 else:
@@ -86,8 +86,8 @@ for test in rec.items():
             ss = int(j[-1]) / total_bundle(test1)
             if ss < diff_dir_fraction and abs(int(j[1]) - int(j[0])) < diff_dir_length: # 如果反向序列是假的
                 j[-2] = judge_dir(test1)
+                j[2],j[3]=j[3],j[2]
     rec2[test[0]] = linkage(test1)
-
 ## group by subjec
 rec3 = {}
 subject = set([i[0] for i in rec.keys()])
@@ -117,16 +117,14 @@ for gp in rec3:
     sub_name = int(str(gp).split("_")[1])
     for aa in group:
         res.append([sub_name] + aa)
-
 a = open(telo_file)
 memo = []
 for i in a.readlines()[1:]:   # 遍历每一条 query 染色体
     i = i.rstrip().split("\t")
     cho, chr_len, left, right = int(i[0]), int(i[1]), i[2], i[3]
     for record in res:    # 遍历每一个bundle
-        # if record[1] == 7 and record[0] == 1 and cho == 7:
         if record[1] == cho:
-            if record[6] == "1":
+            if record[6] == "1":   # query与ref 同向
                 if right != "nd" and abs(int(right) - max(record[4],record[5])) < min_telo_to_show:
                     telo2 = int(right) - max(record[4],record[5]) + record[3]
                 else:
@@ -135,14 +133,13 @@ for i in a.readlines()[1:]:   # 遍历每一条 query 染色体
                     telo1 = int(left) - min(record[4],record[5]) + record[2]
                 else:
                     telo1 = "NA"
-
-            if record[6] == "-1":
-                if right != "nd" and abs(int(right) - max(record[4],record[5])) < min_telo_to_show:
-                    telo1 = record[2] - (int(right) - max(record[4],record[5]))
+            if record[6] == "-1":  # query与ref反向
+                if right != "nd" and abs(int(right) - record[4]) < min_telo_to_show:
+                    telo1 = record[2] - (int(right) - record[4])
                 else:
                     telo1 = "NA"
-                if left != "nd" and abs(int(left) - min(record[4],record[5])) < min_telo_to_show:
-                    telo2 = record[3] + (min(record[4], record[5]) - int(left))
+                if left != "nd" and abs(int(left) - record[5]) < min_telo_to_show:
+                    telo2 = record[3] + (record[5] - int(left))
                 else:
                     telo2 = "NA"
             record.extend([telo1,telo2])
@@ -151,14 +148,14 @@ for i in a.readlines()[1:]:   # 遍历每一条 query 染色体
             continue
 a.close()
 memo = sorted(memo, key=lambda x:(x[0], x[1]))
-
 # output
 pre = mummer_res.split(".")[0]
-with open(pre+".bundle_telo.txt","w+") as fr:
+with open(pre+".bundle_telo2.txt","w+") as fr:
     fr.writelines("ref\ts1\te1\tali\ts2\te2\tbundle_size\tdirection\ttelo1\ttelo2\n")
     for li in memo:
         kk = list(map(str,li))
         kk[1],kk[2],kk[3] = kk[2], kk[3], kk[1]
         kk = "\t".join(kk) + "\n"
         fr.writelines(kk)
+
 
