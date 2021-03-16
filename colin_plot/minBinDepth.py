@@ -2,7 +2,7 @@ from itertools import islice
 import sys
 
 bs = 5000
-
+# input arg[1] is a bam depth from samtools depth
 with open(sys.argv[1]) as f:
 	repo = {}
 	for li in f:

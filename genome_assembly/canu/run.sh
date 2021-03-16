@@ -2,6 +2,7 @@
 #cat `find ~/data/qz-3/ -name "*.fasta"` > qz_merge.fasta
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/stor9000/apps/users/NWSUAF/2018055070/sf/glibc_2.14/lib
 
+## Canu version 1.7
 canu -correct -p qz -d qz_canu_assembly_corMhap genomeSize=60m useGrid=false corMhapSensitivity=normal minReadLength=2000 minOverlapLength=500 -pacbio-raw /stor9000/apps/users/NWSUAF/2018055070/data/qz_merge.fasta
 
 canu -trim \
